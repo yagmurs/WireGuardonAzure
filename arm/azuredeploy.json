@@ -38,6 +38,13 @@
             "metadata": {
                 "description": "Wireguard port"
             }
+        },
+        "_artifactsLocation": {
+        "type": "string",
+        "defaultValue": "https://raw.githubusercontent.com/yagmurs/WireGuardonAzure/master",
+        "metadata": {
+            "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
+            }
         }
     },
     "functions": [],
@@ -91,11 +98,11 @@
                             "description": "WireGuard incoming port",
                             "protocol": "Udp",
                             "sourcePortRange": "*",
-                            "destinationPortRanges": "[parameters('wireGuardUdpPort')]",
+                            "destinationPortRange": "[parameters('wireGuardUdpPort')]",
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": "300",
+                            "priority": 300,
                             "direction": "Inbound"
                         }
                     }
@@ -177,7 +184,7 @@
             },
             "properties": {
                 "hardwareProfile": {
-                    "vmSize": "Standard_A2_v2"
+                    "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
                     "computerName": "[parameters('vmName')]",
@@ -188,7 +195,7 @@
                     "imageReference": {
                         "publisher": "Canonical",
                         "offer": "UbuntuServer",
-                        "sku": "20.04-LTS",
+                        "sku": "19_04-gen2",
                         "version": "latest"
                     },
                     "osDisk": {
@@ -208,6 +215,32 @@
                     "bootDiagnostics": {
                         "enabled": true
                     }
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('vmName'), '/bootstrap')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2021-03-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "displayName": "customScript1 for Linux VM"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.1",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "[concat(parameters('_artifactsLocation'), '/arm/CustomScript/bootstrap.sh', 'artifactsLocationSasToken')]"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "sh bootstrap.sh"
                 }
             }
         }
