@@ -224,7 +224,7 @@
             "apiVersion": "2021-03-01",
             "location": "[resourceGroup().location]",
             "tags": {
-                "displayName": "customScript1 for Linux VM"
+                "displayName": "customScript for Linux VM"
             },
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
