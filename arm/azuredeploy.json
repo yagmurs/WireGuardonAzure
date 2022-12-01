@@ -2,12 +2,6 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "vmName": {
-            "type": "string",
-            "metadata": {
-                "description": "Azure Virtual Machine Name"
-            }
-        },
         "vmSize": {
             "type": "string",
             "defaultValue": "Standard_B1s",
@@ -45,15 +39,23 @@
         "metadata": {
             "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
             }
+        },
+        "_artifactsLocationSasToken": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "description"
+            }
         }
     },
     "functions": [],
     "variables": {
-        "nsgName": "[concat(parameters('vmName'), '-nsg')]",
-        "publicIP": "[concat(parameters('vmName'), '-PublicIP')]",
-        "vNet": "[concat(parameters('vmName'), '-vNet')]",
+        "uniqueString": "[uniqueString(subscription().subscriptionId, resourceGroup().id)]",
+        "nsgName": "[concat(variables('uniqueString'), '-nsg')]",
+        "publicIP": "[concat(variables('uniqueString'), '-PublicIP')]",
+        "vNet": "[concat(variables('uniqueString'), '-vNet')]",
         "subnet": "[concat(variables('vNet'), '-subnet')]",
-        "vmNic": "[concat(parameters('vmName'), '-nic')]"
+        "vmNic": "[concat(variables('uniqueString'), '-nic')]"
     },
     "resources": [
         {
@@ -67,7 +69,7 @@
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
                 "dnsSettings": {
-                    "domainNameLabel": "[toLower(parameters('vmName'))]"
+                    "domainNameLabel": "[toLower(variables('uniqueString'))]"
                 }
             }
         },
@@ -169,7 +171,7 @@
             }
         },
         {
-            "name": "[parameters('vmName')]",
+            "name": "[variables('uniqueString')]",
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2021-03-01",
             "location": "[resourceGroup().location]",
@@ -180,26 +182,26 @@
                 "[resourceId('Microsoft.Network/networkInterfaces', variables('vmNic'))]"
             ],
             "tags": {
-                "displayName": "[parameters('vmName')]"
+                "displayName": "[variables('uniqueString')]"
             },
             "properties": {
                 "hardwareProfile": {
                     "vmSize": "[parameters('vmSize')]"
                 },
                 "osProfile": {
-                    "computerName": "[parameters('vmName')]",
+                    "computerName": "[variables('uniqueString')]",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]"
                 },
                 "storageProfile": {
                     "imageReference": {
                         "publisher": "Canonical",
-                        "offer": "UbuntuServer",
-                        "sku": "19_04-gen2",
+                        "offer": "0001-com-ubuntu-server-jammy",
+                        "sku": "22_04-lts-gen2",
                         "version": "latest"
                     },
                     "osDisk": {
-                        "name": "[concat(parameters('vmName'), '-OSDisk')]",
+                        "name": "[concat(variables('uniqueString'), '-OSDisk')]",
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
                     }
@@ -219,7 +221,7 @@
             }
         },
         {
-            "name": "[concat(parameters('vmName'), '/bootstrap')]",
+            "name": "[concat(variables('uniqueString'), '/bootstrap')]",
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2021-03-01",
             "location": "[resourceGroup().location]",
@@ -227,7 +229,7 @@
                 "displayName": "customScript for Linux VM"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+                "[resourceId('Microsoft.Compute/virtualMachines', variables('uniqueString'))]"
             ],
             "properties": {
                 "publisher": "Microsoft.Azure.Extensions",
@@ -236,7 +238,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "[concat(parameters('_artifactsLocation'), '/arm/CustomScript/bootstrap.sh', 'artifactsLocationSasToken')]"
+                        "[concat(parameters('_artifactsLocation'), '/arm/CustomScript/bootstrap.sh', parameters('_artifactsLocationSasToken'))]"
                     ]
                 },
                 "protectedSettings": {
